@@ -1,23 +1,18 @@
-FROM debian:12-slim
+FROM debian:12-slim AS download-hadoop-spark
 
-# Setup Hadoop
+ENV HADOOP_VERSION=3.4.1
+ENV HADOOP_MAJOR_VERSION=3
+ENV HADOOP_URL=https://dlcdn.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
+
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  openjdk-17-jdk \
-  net-tools \
+  ca-certificates \
   curl \
-  netcat \
   gnupg \
-  libsnappy-dev \
   && rm -rf /var/lib/apt/lists/*
-
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 RUN curl -O https://downloads.apache.org/hadoop/common/KEYS
 
 RUN gpg --import KEYS
-
-ENV HADOOP_VERSION 3.4.1
-ENV HADOOP_URL https://www.apache.org/dyn/closer.cgi/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz
 
 RUN set -x \
   && curl -fSL "${HADOOP_URL}" -o /tmp/hadoop.tar.gz \
@@ -26,17 +21,49 @@ RUN set -x \
   && tar -xvf /tmp/hadoop.tar.gz -C /opt/ \
   && rm /tmp/hadoop.tar.gz*
 
-RUN ln -s /opt/hadoop-${HADOOP_VERSION}/etc/hadoop /etc/hadoop
+ENV SPARK_VERSION=4.0.0
+ENV SPARK_URL="https://dlcdn.apache.org/spark/spark-${SPARK_VERSION}/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}.tgz"
+
+RUN curl -O https://downloads.apache.org/spark/KEYS
+
+RUN gpg --import KEYS
+
+RUN set -x \
+  && curl -fSL "${SPARK_URL}" -o /tmp/spark.tar.gz \
+  && curl -fSL "${SPARK_URL}.asc" -o /tmp/spark.tar.gz.asc \
+  && gpg --verify /tmp/spark.tar.gz.asc \
+  && tar -xvf /tmp/spark.tar.gz -C /opt/ \
+  && rm /tmp/spark.tar.gz*
+
+FROM debian:12-slim
+
+ENV SPARK_VERSION=4.0.0
+ENV HADOOP_VERSION=3.4.1
+ENV HADOOP_MAJOR_VERSION=3
+
+# Setup Hadoop
+# ref: https://github.com/big-data-europe/docker-hadoop/blob/master/base/Dockerfile
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+  openjdk-17-jdk \
+  net-tools \
+  curl \
+  netcat-traditional \
+  gnupg \
+  libsnappy-dev \
+  openssh-server \
+  && rm -rf /var/lib/apt/lists/*
+
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+
+COPY --from=download-hadoop-spark /opt/hadoop-${HADOOP_VERSION} /opt/hadoop-${HADOOP_VERSION}
+RUN ln -s /opt/hadoop-${HADOOP_VERSION} /opt/hadoop
 
 RUN mkdir /opt/hadoop-${HADOOP_VERSION}/logs
 
-RUN mkdir /hadoop-data
-
-ENV HADOOP_HOME=/opt/hadoop-${HADOOP_VERSION}
-ENV HADOOP_CONF_DIR=/etc/hadoop
-ENV MULTIHOMED_NETWORK=1
+ENV HADOOP_HOME=/opt/hadoop
+ENV HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
 ENV USER=root
-ENV PATH ${HADOOP_HOME}/bin:$PATH
+ENV PATH=${HADOOP_HOME}/bin:$PATH
 
 # TODO: Setup Spark
 # NOTE: We gonna colocate Spark and Hadoop in the same machine (container).
@@ -58,8 +85,41 @@ ENV PATH ${HADOOP_HOME}/bin:$PATH
 # Spark can be installed on different machines but would not make sense. I would
 # install on all HDFS nodes, 5 not 3 as I understand in such a case.
 
-ADD entrypoint.sh /entrypoint.sh
+# ref: https://github.com/big-data-europe/docker-spark/blob/master/base/Dockerfile
+ENV SPARK_VERSION=4.0.0
 
-RUN chmod a+x /entrypoint.sh
+COPY --from=download-hadoop-spark /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}
 
-ENTRYPOINT [ "/entrypoint.sh" ]
+RUN ln -s /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark
+
+ENV SPARK_HOME=/opt/spark
+ENV PATH=${SPARK_HOME}/bin:$PATH
+
+# Setup Hadoop user, who can access to each machine in the cluster via ssh.
+# ref: https://medium.com/codex/running-a-multi-node-hadoop-cluster-257068e5f276
+
+RUN groupadd hadoop \
+  && useradd -m hduser \
+  && usermod -aG hadoop hduser \
+  && usermod -aG sudo hduser \
+  && passwd -d hduser
+
+RUN mkdir -p /data/hadoop \
+  && mkdir -p /data/hadoop/data \
+  && mkdir -p /data/hadoop/name \
+  && mkdir -p /data/hadoop/pid \
+  && mkdir -p /data/hadoop/tmp \
+  && chown -R hduser:hadoop /data/hadoop
+
+USER hduser
+
+RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
+  && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys \
+  && chmod 0600 ~/.ssh/authorized_keys
+
+
+# ADD entrypoint.sh /entrypoint.sh
+
+# RUN chmod a+x /entrypoint.sh
+
+# ENTRYPOINT [ "/entrypoint.sh" ]
