@@ -35,7 +35,7 @@ RUN set -x \
   && tar -xvf /tmp/spark.tar.gz -C /opt/ \
   && rm /tmp/spark.tar.gz*
 
-FROM debian:12-slim
+FROM ubuntu:24.10
 
 ENV SPARK_VERSION=4.0.0
 ENV HADOOP_VERSION=3.4.1
@@ -43,27 +43,41 @@ ENV HADOOP_MAJOR_VERSION=3
 
 # Setup Hadoop
 # ref: https://github.com/big-data-europe/docker-hadoop/blob/master/base/Dockerfile
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-  openjdk-17-jdk \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+  openjdk-21-jdk \
   net-tools \
   curl \
   netcat-traditional \
   gnupg \
   libsnappy-dev \
   openssh-server \
+  sudo \
+  htop \
+  pdsh \
   && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+# Setup Hadoop user, who can access to each machine in the cluster via ssh.
+# ref: https://medium.com/codex/running-a-multi-node-hadoop-cluster-257068e5f276
 
-COPY --from=download-hadoop-spark /opt/hadoop-${HADOOP_VERSION} /opt/hadoop-${HADOOP_VERSION}
-RUN ln -s /opt/hadoop-${HADOOP_VERSION} /opt/hadoop
+RUN groupadd hadoop \
+  && useradd -m hduser \
+  && usermod -aG hadoop hduser \
+  && usermod -aG sudo hduser \
+  && passwd -d hduser
+
+RUN mkdir -p /data/hadoop \
+  && mkdir -p /data/hadoop/data \
+  && mkdir -p /data/hadoop/name \
+  && mkdir -p /data/hadoop/pid \
+  && mkdir -p /data/hadoop/tmp \
+  && chown -R hduser:hadoop /data/hadoop
+
+USER hduser
+
+COPY --chown=hduser:hadoop --from=download-hadoop-spark /opt/hadoop-${HADOOP_VERSION} /opt/hadoop-${HADOOP_VERSION}
+RUN sudo ln -s /opt/hadoop-${HADOOP_VERSION} /opt/hadoop
 
 RUN mkdir /opt/hadoop-${HADOOP_VERSION}/logs
-
-ENV HADOOP_HOME=/opt/hadoop
-ENV HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
-ENV USER=root
-ENV PATH=${HADOOP_HOME}/bin:$PATH
 
 # TODO: Setup Spark
 # NOTE: We gonna colocate Spark and Hadoop in the same machine (container).
@@ -88,38 +102,42 @@ ENV PATH=${HADOOP_HOME}/bin:$PATH
 # ref: https://github.com/big-data-europe/docker-spark/blob/master/base/Dockerfile
 ENV SPARK_VERSION=4.0.0
 
-COPY --from=download-hadoop-spark /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}
-
-RUN ln -s /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark
-
-ENV SPARK_HOME=/opt/spark
-ENV PATH=${SPARK_HOME}/bin:$PATH
-
-# Setup Hadoop user, who can access to each machine in the cluster via ssh.
-# ref: https://medium.com/codex/running-a-multi-node-hadoop-cluster-257068e5f276
-
-RUN groupadd hadoop \
-  && useradd -m hduser \
-  && usermod -aG hadoop hduser \
-  && usermod -aG sudo hduser \
-  && passwd -d hduser
-
-RUN mkdir -p /data/hadoop \
-  && mkdir -p /data/hadoop/data \
-  && mkdir -p /data/hadoop/name \
-  && mkdir -p /data/hadoop/pid \
-  && mkdir -p /data/hadoop/tmp \
-  && chown -R hduser:hadoop /data/hadoop
-
-USER hduser
+COPY --chown=hduser:hadoop --from=download-hadoop-spark /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION}
+RUN sudo ln -s /opt/spark-${SPARK_VERSION}-bin-hadoop${HADOOP_MAJOR_VERSION} /opt/spark
 
 RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
   && cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys \
   && chmod 0600 ~/.ssh/authorized_keys
 
+# Setting default shell to bash when accessing another container via ssh.
+RUN sudo chsh -s /bin/bash hduser
 
-# ADD entrypoint.sh /entrypoint.sh
+ADD --chown=hduser:hadoop setup.sh /home/hduser/setup.sh
+ADD --chown=hduser:hadoop entrypoint.sh /home/hduser/entrypoint.sh
 
-# RUN chmod a+x /entrypoint.sh
+RUN chmod a+x /home/hduser/setup.sh
+RUN chmod a+x /home/hduser/entrypoint.sh
 
-# ENTRYPOINT [ "/entrypoint.sh" ]
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+
+ENV HADOOP_HOME=/opt/hadoop
+ENV HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
+ENV PATH=${HADOOP_HOME}/bin:$PATH
+
+ENV SPARK_HOME=/opt/spark
+ENV PATH=${SPARK_HOME}/bin:$PATH
+
+RUN printf "export JAVA_HOME=${JAVA_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export HADOOP_HOME=${HADOOP_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export HADOOP_CONF_DIR=${HADOOP_CONF_DIR}\n" >> /home/hduser/.bashrc \
+  && printf "export PATH=${HADOOP_HOME}/bin:\$PATH\n" >> /home/hduser/.bashrc \
+  && printf "export SPARK_HOME=${SPARK_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export PATH=${SPARK_HOME}/bin:\$PATH\n" >> /home/hduser/.bashrc \
+  && printf "export HADOOP_MAPRED_HOME=${HADOOP_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export HADOOP_HDFS_HOME=${HADOOP_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export HADOOP_YARN_HOME=${HADOOP_HOME}\n" >> /home/hduser/.bashrc \
+  && printf "export HDFS_NAMENODE_USER=hduser\n" >> /home/hduser/.bashrc \
+  && printf "export HDFS_DATANODE_USER=hduser\n" >> /home/hduser/.bashrc \
+  && printf "export HDFS_SECONDARYNAMENODE_USER=hduser\n" >> /home/hduser/.bashrc \
+  && printf "export YARN_RESOURCEMANAGER_USER=hduser\n" >> /home/hduser/.bashrc \
+  && printf "export YARN_NODEMANAGER_USER=hduser\n" >> /home/hduser/.bashrc \

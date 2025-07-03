@@ -1,0 +1,38 @@
+services:
+  master:
+    build: base/
+    container_name: master
+    hostname: master
+    command: ["/home/hduser/entrypoint.sh"]
+    ports:
+      # dfs.datanode.http.address
+      # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+      - 9864:9864
+      # dfs.namenode.secondary.http-address
+      - 9868:9868
+      # dfs.namenode.http-address
+      - 9870:9870
+      - 9046:9046
+    depends_on:
+      - worker1
+      - worker2
+
+  worker1:
+    build: base/
+    container_name: worker1
+    hostname: worker1
+    ports:
+      # dfs.datanode.http.address
+      # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+      - 19864:9864
+    command: ["/home/hduser/entrypoint.sh"]
+
+  worker2:
+    build: base/
+    container_name: worker2
+    hostname: worker2
+    ports:
+      # dfs.datanode.http.address
+      # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+      - 29864:9864
+    command: ["/home/hduser/entrypoint.sh"]
