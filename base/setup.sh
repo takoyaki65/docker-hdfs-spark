@@ -37,7 +37,9 @@ addProperty $configDir/yarn-site.xml yarn.nodemanager.env-whitelist JAVA_HOME,HA
 addProperty $configDir/mapred-site.xml mapreduce.framework.name yarn
 addProperty $configDir/mapred-site.xml mapreduce.application.classpath /opt/hadoop/share/hadoop/mapreduce/*:/opt/hadoop/share/hadoop/mapreduce/lib/*
 
-echo "export JAVA_HOME=$JAVA_HOME" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
+JAVA11_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+echo "export JAVA_HOME=$JAVA11_HOME" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
 echo "export HADOOP_PID_DIR=/data/hadoop/pid" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
 
 echo "master" > /opt/hadoop/etc/hadoop/workers

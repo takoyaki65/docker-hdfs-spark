@@ -21,5 +21,8 @@ docker compose up -d
 docker exec -it master bash
 ```
 
-# TODO
-* Cannot launch YARN resourcemanager / nodemanager
+# Issues
+* (Solved) Cannot launch YARN resourcemanager / nodemanager
+  * That's because we use java 17 as runtime, though the hadoop 3.4.1 requires java 8 or 11.
+  * We decided to use java 11 for hadoop, and java 17 for spark.
+

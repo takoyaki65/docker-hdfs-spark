@@ -44,7 +44,8 @@ ENV HADOOP_MAJOR_VERSION=3
 # Setup Hadoop
 # ref: https://github.com/big-data-europe/docker-hadoop/blob/master/base/Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
-  openjdk-21-jdk \
+  openjdk-11-jdk \
+  openjdk-17-jdk \
   net-tools \
   curl \
   netcat-traditional \
@@ -55,6 +56,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   htop \
   pdsh \
   && rm -rf /var/lib/apt/lists/*
+
+# set openjdk-17 as default
+RUN update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+RUN update-alternatives --set javac /usr/lib/jvm/java-17-openjdk-amd64/bin/javac
 
 # Setup Hadoop user, who can access to each machine in the cluster via ssh.
 # ref: https://medium.com/codex/running-a-multi-node-hadoop-cluster-257068e5f276
@@ -118,7 +123,7 @@ ADD --chown=hduser:hadoop entrypoint.sh /home/hduser/entrypoint.sh
 RUN chmod a+x /home/hduser/setup.sh
 RUN chmod a+x /home/hduser/entrypoint.sh
 
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
 ENV HADOOP_HOME=/opt/hadoop
 ENV HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop
