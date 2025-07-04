@@ -31,7 +31,6 @@ addProperty $configDir/hdfs-site.xml dfs.namenode.name.dir /data/hadoop/name
 
 addProperty $configDir/yarn-site.xml yarn.resourcemanager.hostname master
 addProperty $configDir/yarn-site.xml yarn.nodemanager.aux-services mapreduce_shuffle
-addProperty $configDir/yarn-site.xml yarn.web-proxy.address master:9046
 addProperty $configDir/yarn-site.xml yarn.nodemanager.env-whitelist JAVA_HOME,HADOOP_COMMON_HOME,HADOOP_HDFS_HOME,HADOOP_CONF_DIR,CLASSPATH_PREPEND_DISTCACHE,HADOOP_YARN_HOME,HADOOP_MAPRED_HOME
 
 addProperty $configDir/mapred-site.xml mapreduce.framework.name yarn

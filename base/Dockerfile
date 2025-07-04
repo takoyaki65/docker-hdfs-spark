@@ -55,6 +55,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   sudo \
   htop \
   pdsh \
+  python3 \
   && rm -rf /var/lib/apt/lists/*
 
 # set openjdk-17 as default
@@ -75,7 +76,11 @@ RUN mkdir -p /data/hadoop \
   && mkdir -p /data/hadoop/name \
   && mkdir -p /data/hadoop/pid \
   && mkdir -p /data/hadoop/tmp \
-  && chown -R hduser:hadoop /data/hadoop
+  && mkdir -p /data/spark/local \
+  && mkdir -p /data/spark/logs \
+  && mkdir -p /data/spark/pid \
+  && mkdir -p /data/spark/work \
+  && chown -R hduser:hadoop /data
 
 USER hduser
 
@@ -117,11 +122,15 @@ RUN ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa \
 # Setting default shell to bash when accessing another container via ssh.
 RUN sudo chsh -s /bin/bash hduser
 
-ADD --chown=hduser:hadoop setup.sh /home/hduser/setup.sh
+ADD --chown=hduser:hadoop setupHadoop.sh /home/hduser/setupHadoop.sh
+ADD --chown=hduser:hadoop setupSpark.sh /home/hduser/setupSpark.sh
 ADD --chown=hduser:hadoop entrypoint.sh /home/hduser/entrypoint.sh
+ADD --chown=hduser:hadoop stopAll.sh /home/hduser/stopAll.sh
 
-RUN chmod a+x /home/hduser/setup.sh
+RUN chmod a+x /home/hduser/setupHadoop.sh
+RUN chmod a+x /home/hduser/setupSpark.sh
 RUN chmod a+x /home/hduser/entrypoint.sh
+RUN chmod a+x /home/hduser/stopAll.sh
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
@@ -145,4 +154,4 @@ RUN printf "export JAVA_HOME=${JAVA_HOME}\n" >> /home/hduser/.bashrc \
   && printf "export HDFS_DATANODE_USER=hduser\n" >> /home/hduser/.bashrc \
   && printf "export HDFS_SECONDARYNAMENODE_USER=hduser\n" >> /home/hduser/.bashrc \
   && printf "export YARN_RESOURCEMANAGER_USER=hduser\n" >> /home/hduser/.bashrc \
-  && printf "export YARN_NODEMANAGER_USER=hduser\n" >> /home/hduser/.bashrc \
+  && printf "export YARN_NODEMANAGER_USER=hduser\n" >> /home/hduser/.bashrc 

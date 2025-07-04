@@ -1,7 +1,13 @@
 #!/bin/bash
 sudo service ssh start
 
-/home/hduser/setup.sh
+echo "Setting up Hadoop..."
+/home/hduser/setupHadoop.sh
+echo "Hadoop setup complete."
+
+echo "Setting up Spark..."
+/home/hduser/setupSpark.sh
+echo "Spark setup complete."
 
 echo "Everything is ready. Now you can use the cluster."
 

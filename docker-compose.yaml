@@ -7,12 +7,19 @@ services:
     ports:
       # dfs.datanode.http.address
       # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
-      - 9864:9864
+      - 19864:9864
       # dfs.namenode.secondary.http-address
       - 9868:9868
       # dfs.namenode.http-address
       - 9870:9870
-      - 9046:9046
+      # yarn.resourcemanager.webapp.address
+      - 8088:8088
+      # yarn.nodemanager.webapp.address
+      - 18042:8042
+      # SPARK_MASTER_WEBUI_PORT (default: 8080, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
+      - 8080:8080
+      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
+      - 18080:18080
     depends_on:
       - worker1
       - worker2
@@ -24,7 +31,11 @@ services:
     ports:
       # dfs.datanode.http.address
       # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
-      - 19864:9864
+      - 29864:9864
+      # yarn.nodemanager.webapp.address
+      - 28042:8042
+      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
+      - 28080:18080
     command: ["/home/hduser/entrypoint.sh"]
 
   worker2:
@@ -34,5 +45,20 @@ services:
     ports:
       # dfs.datanode.http.address
       # we can override this port by modifying $HADOOP_HOME/etc/hadoop/hdfs-site.xml
-      - 29864:9864
+      - 39864:9864
+      # yarn.nodemanager.webapp.address
+      - 38042:8042
+      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
+      - 38080:18080
     command: ["/home/hduser/entrypoint.sh"]
+
+  brower:
+    image: selenium/standalone-chrome:latest
+    ports:
+      - 4444:4444 # Selenium WebDriver
+      - 7900:7900 # noVNC Web Interface
+    networks:
+      - default
+    environment:
+      - SE_VNC_PASSWORD=password
+    shm_size: 2g
