@@ -52,7 +52,7 @@ services:
       - 38080:18080
     command: ["/home/hduser/entrypoint.sh"]
 
-  brower:
+  browser:
     image: selenium/standalone-chrome:latest
     ports:
       - 4444:4444 # Selenium WebDriver
