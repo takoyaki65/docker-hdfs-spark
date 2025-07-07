@@ -126,11 +126,13 @@ ADD --chown=hduser:hadoop setupHadoop.sh /home/hduser/setupHadoop.sh
 ADD --chown=hduser:hadoop setupSpark.sh /home/hduser/setupSpark.sh
 ADD --chown=hduser:hadoop entrypoint.sh /home/hduser/entrypoint.sh
 ADD --chown=hduser:hadoop stopAll.sh /home/hduser/stopAll.sh
+ADD --chown=hduser:hadoop addProperty.py /home/hduser/addProperty.py
 
 RUN chmod a+x /home/hduser/setupHadoop.sh
 RUN chmod a+x /home/hduser/setupSpark.sh
 RUN chmod a+x /home/hduser/entrypoint.sh
 RUN chmod a+x /home/hduser/stopAll.sh
+RUN chmod a+x /home/hduser/addProperty.py
 
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
