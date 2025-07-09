@@ -76,6 +76,7 @@ RUN mkdir -p /data/hadoop \
   && mkdir -p /data/hadoop/name \
   && mkdir -p /data/hadoop/pid \
   && mkdir -p /data/hadoop/tmp \
+  && mkdir -p /data/hadoop/logs \
   && mkdir -p /data/spark/local \
   && mkdir -p /data/spark/logs \
   && mkdir -p /data/spark/pid \

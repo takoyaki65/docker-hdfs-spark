@@ -22,6 +22,7 @@ JAVA11_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 
 echo "export JAVA_HOME=$JAVA11_HOME" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
 echo "export HADOOP_PID_DIR=/data/hadoop/pid" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
+echo "export HADOOP_LOG_DIR=/data/hadoop/logs" >> /opt/hadoop/etc/hadoop/hadoop-env.sh
 
 echo "master" > /opt/hadoop/etc/hadoop/workers
 echo "worker1" >> /opt/hadoop/etc/hadoop/workers
