@@ -9,6 +9,7 @@ echo "export SPARK_LOG_DIR=/data/spark/logs"
 echo "export SPARK_PID_DIR=/data/spark/pid" 
 echo "export SPARK_WORKER_DIR=/data/spark/work" 
 echo "export SPARK_WORKER_WEBUI_PORT=18080"
+echo "export HADOOP_CONF_DIR=/opt/hadoop/etc/hadoop"
 } >> /opt/spark/conf/spark-env.sh
 
 {
