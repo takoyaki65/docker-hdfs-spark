@@ -18,7 +18,7 @@ services:
       - 18042:8042
       # SPARK_MASTER_WEBUI_PORT (default: 8080, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
       - 8080:8080
-      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
+      # spark.history.ui.port (default: 18080, we can override this port by modifying $SPARK_HOME/conf/spark-defaults.conf)
       - 18080:18080
     depends_on:
       - worker1
@@ -34,8 +34,6 @@ services:
       - 29864:9864
       # yarn.nodemanager.webapp.address
       - 28042:8042
-      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
-      - 28080:18080
     command: ["/home/hduser/entrypoint.sh"]
 
   worker2:
@@ -48,8 +46,6 @@ services:
       - 39864:9864
       # yarn.nodemanager.webapp.address
       - 38042:8042
-      # SPARK_WORKER_WEBUI_PORT (default: random, we can override this port by modifying $SPARK_HOME/conf/spark-env.sh)
-      - 38080:18080
     command: ["/home/hduser/entrypoint.sh"]
 
   browser:

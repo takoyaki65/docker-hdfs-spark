@@ -45,8 +45,15 @@ docker exec -it master bash
 4. click left mouse button and select "Applications" -> "Network" -> "Web Browsing" -> "Google Chrome"
 5. open those links below:
   * `http://master:8080` (Spark Master)
+  * `http://master:18080` (Spark History Server)
   * `http://master:8088` (Yarn Resource Manager)
   * `http://master:9870` (HDFS NameNode)
+
+# Memo
+## Why history server is needed?
+In default, all the logs of spark jobs are discarded immediately after the job is finished.
+
+But, we can configure the spark to save the logs to hdfs, and then we can see the logs of spark jobs from the history server.
 
 # Issues
 * (Solved) Cannot launch YARN resourcemanager / nodemanager
